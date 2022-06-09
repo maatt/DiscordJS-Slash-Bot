@@ -1,0 +1,8 @@
+#folders
+.idea
+node_modules
+#files
+.vscode
+.DS_Store
+.env
+package-lock.json
