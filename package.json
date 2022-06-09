@@ -2,6 +2,11 @@
   "name": "discordjs-slash-bot",
   "version": "1.0.0",
   "description": "DiscordJS Basic Slash Commands Bot",
+  "keywords": [
+    "discordjs",
+    "slash commands",
+    "discord bot"
+  ],
   "main": "bot.js",
   "scripts": {
     "start": "node bot"
@@ -10,8 +15,12 @@
     "type": "git",
     "url": "git@github.com:maatt/DiscordJS-Slash-Bot.git"
   },
-  "keywords": [],
+  "bugs": {
+    "url": "https://github.com/maatt/DiscordJS-Slash-Bot/issues",
+    "email": "matt@maatt.me"
+  },
   "author": "Matt <matt@maatt.me> (https://github.com/maatt)",
+  "homepage": "https://github.com/maatt/DiscordJS-Slash-Bot",
   "license": "ISC",
   "dependencies": {
     "@discordjs/builders": "^0.15.0",

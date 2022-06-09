@@ -17,5 +17,7 @@ create new commands in the commands folder.
 
 ### Install
 ```bash
-npm install discordjs-slash-bot
+git clone git@github.com:maatt/DiscordJS-Slash-Bot.git
+cd DiscordJS-Slash-Bot
+npm install
 ```
