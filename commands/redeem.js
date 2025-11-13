@@ -14,6 +14,12 @@ const RETRY_DELAY_MS = 2_000;
 const MAX_RETRIES = 3;
 
 const LOG_FILE = path.join(__dirname, '..', 'redeemed_codes.txt');
+// Update this JSON string with the player IDs that should receive the gift code.
+const PLAYER_IDS_JSON = `[
+    "123456789012345678",
+    "234567890123456789"
+]`;
+const PLAYER_SOURCE_DESCRIPTION = 'Embedded JSON string (commands/redeem.js)';
 
 const RESULT_MESSAGES = {
     SUCCESS: 'Successfully redeemed',
@@ -198,15 +204,25 @@ async function redeemGiftCode(fid, code) {
     }
 }
 
-function parsePlayerIds(content) {
-    return content
-        .split(/\r?\n|,/)
-        .map((value) => value.trim())
+function parsePlayerIdsFromJson(jsonString) {
+    let parsed;
+
+    try {
+        parsed = JSON.parse(jsonString);
+    } catch (error) {
+        throw new Error(`JSON parse failed: ${error.message}`);
+    }
+
+    if (!Array.isArray(parsed)) {
+        throw new Error('Expected a JSON array of player IDs');
+    }
+
+    return parsed
+        .map((value) => String(value).trim())
         .filter((value) => value.length > 0);
 }
 
 function createSummaryMessage({
-    filePath,
     code,
     processed,
     counters,
@@ -216,7 +232,7 @@ function createSummaryMessage({
     const relativeLog = path.relative(process.cwd(), LOG_FILE);
     const summaryLines = [
         `Gift code: ${code}`,
-        `Source file: ${filePath}`,
+        `Player source: ${PLAYER_SOURCE_DESCRIPTION}`,
         `Player IDs processed: ${processed}`,
         `Successfully redeemed: ${counters.success}`,
         `Already redeemed: ${counters.alreadyRedeemed}`,
@@ -243,44 +259,36 @@ function createSummaryMessage({
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('redeem')
-        .setDescription('Redeem a Kingshot gift code for players listed in a text file.')
+        .setDescription('Redeem a Kingshot gift code for the predefined player list.')
         .addStringOption((option) =>
             option
                 .setName('code')
                 .setDescription('The gift code to redeem.')
-                .setRequired(true)
-        )
-        .addStringOption((option) =>
-            option
-                .setName('file')
-                .setDescription('Path to a text file that lists player IDs (comma or newline separated).')
                 .setRequired(true)
         ),
     async execute(interaction) {
         await interaction.deferReply({ ephemeral: true });
 
         const code = interaction.options.getString('code', true).trim();
-        const filePath = interaction.options.getString('file', true).trim();
-
-        let fileContent;
+        let playerIds;
 
         try {
-            fileContent = await fs.readFile(filePath, { encoding: 'utf8' });
+            playerIds = parsePlayerIdsFromJson(PLAYER_IDS_JSON);
         } catch (error) {
             await interaction.editReply(
-                `Failed to read file at \`${filePath}\`: ${error.message}`
+                `Failed to load player list from embedded JSON: ${error.message}`
             );
             return;
         }
-
-        const playerIds = parsePlayerIds(fileContent);
 
         if (playerIds.length === 0) {
             await interaction.editReply(
-                `No player IDs were found in \`${filePath}\`. Ensure the file contains IDs separated by commas or new lines.`
+                'No player IDs were found in the embedded JSON string. Update PLAYER_IDS_JSON to include one or more IDs.'
             );
             return;
         }
+
+        await logMessage(`Loaded ${playerIds.length} player IDs from embedded JSON string.`);
 
         await logMessage(
             `\n=== Starting redemption for gift code: ${code} at ${new Date()
@@ -344,7 +352,6 @@ module.exports = {
         await logMessage(`Errors/Failures: ${counters.errors}`);
 
         const message = createSummaryMessage({
-            filePath,
             code,
             processed: processedCount,
             counters,
