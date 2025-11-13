@@ -14,12 +14,8 @@ const RETRY_DELAY_MS = 2_000;
 const MAX_RETRIES = 3;
 
 const LOG_FILE = path.join(__dirname, '..', 'redeemed_codes.txt');
-// Update this JSON string with the player IDs that should receive the gift code.
-const PLAYER_IDS_JSON = `[
-    "123456789012345678",
-    "234567890123456789"
-]`;
-const PLAYER_SOURCE_DESCRIPTION = 'Embedded JSON string (commands/redeem.js)';
+const PLAYER_IDS_FILE = path.join(__dirname, '..', 'player_ids.json');
+const PLAYER_SOURCE_DESCRIPTION = './player_ids.json';
 
 const RESULT_MESSAGES = {
     SUCCESS: 'Successfully redeemed',
@@ -222,6 +218,18 @@ function parsePlayerIdsFromJson(jsonString) {
         .filter((value) => value.length > 0);
 }
 
+async function loadPlayerIdsFromFile(filePath) {
+    let jsonString;
+
+    try {
+        jsonString = await fs.readFile(filePath, { encoding: 'utf8' });
+    } catch (error) {
+        throw new Error(`Could not read file: ${error.message}`);
+    }
+
+    return parsePlayerIdsFromJson(jsonString);
+}
+
 function createSummaryMessage({
     code,
     processed,
@@ -273,22 +281,25 @@ module.exports = {
         let playerIds;
 
         try {
-            playerIds = parsePlayerIdsFromJson(PLAYER_IDS_JSON);
+            playerIds = await loadPlayerIdsFromFile(PLAYER_IDS_FILE);
         } catch (error) {
             await interaction.editReply(
-                `Failed to load player list from embedded JSON: ${error.message}`
+                `Failed to load player list from ${PLAYER_SOURCE_DESCRIPTION}: ${error.message}`
             );
             return;
         }
 
         if (playerIds.length === 0) {
             await interaction.editReply(
-                'No player IDs were found in the embedded JSON string. Update PLAYER_IDS_JSON to include one or more IDs.'
+                `No player IDs were found in ${PLAYER_SOURCE_DESCRIPTION}. Add one or more IDs to continue.`
             );
             return;
         }
 
-        await logMessage(`Loaded ${playerIds.length} player IDs from embedded JSON string.`);
+        const relativePlayerPath = path.relative(process.cwd(), PLAYER_IDS_FILE);
+        await logMessage(
+            `Loaded ${playerIds.length} player IDs from ${relativePlayerPath || PLAYER_SOURCE_DESCRIPTION}.`
+        );
 
         await logMessage(
             `\n=== Starting redemption for gift code: ${code} at ${new Date()
