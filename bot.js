@@ -8,7 +8,8 @@ let Discord = require(`discord.js`);
 
 let client = new Discord.Client({
     partials: [`CHANNEL`],
-    intents: [`DIRECT_MESSAGES`, `GUILDS`, `GUILD_MESSAGES`, `GUILD_MEMBERS`],
+    intents: [`GUILD_MESSAGES`],
+    //intents: [`DIRECT_MESSAGES`, `GUILDS`, `GUILD_MESSAGES`, `GUILD_MEMBERS`],
 });
 
 client.botConfig = process.env;
